@@ -18,6 +18,9 @@ mkinstalldirs
 po/POTFILES
 po/stamp-it
 src/.deps/
+src/.libs/
 stamp-h1
 *.o
 *.lo
+*.la
+
