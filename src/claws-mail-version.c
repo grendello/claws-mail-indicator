@@ -32,78 +32,13 @@
 #define _GNU_SOURCE
 #endif
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <glib.h>
+#include <common/version.h>
+
+#ifndef VERSION
+#define VERSION "0.0.0"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
+char *claws_version = VERSION;
+guint32 claws_version_numeric = VERSION_NUMERIC;
 
-#include <glib.h>
-#include <glib/gi18n-lib.h>
-
-#include <canberra.h>
-#include <libnotify/notify.h>
-#include <libindicate/server.h>
-#include <libindicate/indicator.h>
-#include <libindicate/indicator-messages.h>
-#include <unity.h>
-
-#include <common/claws.h>
-#include <plugin.h>
-
-#undef HAVE_CONFIG_H
-#include <folder.h>
-
-#include "claws-mail-version.h"
-
-static guint item_hook_id;
-
-static void update (void)
-{
-	
-}
-
-static gboolean folder_item_update_hook (gpointer source, gpointer data)
-{
-	update ();
-
-	return FALSE;
-}
-
-gint plugin_init (gchar **error)
-{
-	if (!check_plugin_version (MAKE_NUMERIC_VERSION (3,7,0,0), claws_version_numeric, PACKAGE_NAME, error))
-		return -1;
-
-	item_hook_id = hooks_register_hook (FOLDER_ITEM_UPDATE_HOOKLIST, folder_item_update_hook, NULL);
-	if (item_hook_id == -1) {
-		*error = g_strdup (_ ("Failed to register folder item update hook."));
-		return -1;
-	}
-	
-	return 0;
-}
-
-gboolean plugin_done (void)
-{
-	hooks_unregister_hook (FOLDER_ITEM_UPDATE_HOOKLIST, item_hook_id);
-	
-	return TRUE;
-}
-
-const gchar *plugin_name (void)
-{
-	return _ ("UbuntuIndicator");
-}
-
-const gchar *plugin_desc (void)
-{
-	return _ ("This plugin implements notifications for the latest Ubuntu versions "
-		  "which support unity and the integrated indicator applets.");
-}
-
-const gchar *plugin_type (void)
-{
-	return "GTK";
-}
