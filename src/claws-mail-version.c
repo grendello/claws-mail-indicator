@@ -41,4 +41,5 @@
 
 char *claws_version = VERSION;
 guint32 claws_version_numeric = VERSION_NUMERIC;
+guint32 claws_minimum_version = MAKE_NUMERIC_VERSION (3,7,0,0);
 

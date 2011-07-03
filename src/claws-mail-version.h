@@ -33,5 +33,6 @@
 
 extern char *claws_version;
 extern guint32 claws_version_numeric;
+extern guint32 claws_minimum_version;
 
 #endif
