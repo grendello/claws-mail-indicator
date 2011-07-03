@@ -24,17 +24,38 @@ IT_PROG_INTLTOOL([0.34])
 
 AM_GLIB_GNU_GETTEXT
 
-PKG_CHECK_MODULES(DEPS,
-                  indicate-0.5 >= 0.4.91
-                  claws-mail
-                  dbus-1
-                  dbus-glib-1
-                  libnotify
-                  libcanberra                  
-                  unity
-                  )
+PKG_CHECK_MODULES([DEPS],[
+	indicate-0.5 >= 0.4.91
+	claws-mail
+	dbus-1
+	dbus-glib-1]
+)
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
+
+PKG_CHECK_MODULES(LIBNOTIFY, 
+	[libnotify],
+	[AC_DEFINE([HAVE_LIBNOTIFY],[1],[Use libnotify])],
+	[AC_MSG_RESULT([no])]
+)
+AC_SUBST(LIBNOTIFY_CFLAGS)
+AC_SUBST(LIBNOTIFY_LIBS)
+
+PKG_CHECK_MODULES(LIBCANBERRA,
+	[libcanberra],
+	[AC_DEFINE([HAVE_LIBCANBERRA],[1],[Use canberra])],
+	[AC_MSG_RESULT([no])]
+)
+AC_SUBST(LIBCANBERRA_CFLAGS)
+AC_SUBST(LIBCANBERRA_LIBS)
+
+PKG_CHECK_MODULES(UNITY,
+	[unity],
+	[AC_DEFINE([HAVE_UNITY],[1],[Use unity])],
+	[AC_MSG_RESULT([no])]
+)
+AC_SUBST(UNITY_CFLAGS)
+AC_SUBST(UNITY_LIBS)
 
 CLAWS_PLUGIN_DIR=`pkg-config --variable=plugindir claws-mail`
 AC_SUBST(CLAWS_PLUGIN_DIR)
@@ -45,3 +66,30 @@ AC_OUTPUT(
 	po/Makefile.in
 )
 
+if test -n "$LIBNOTIFY_CFLAGS"; then
+   LIBNOTIFY_PRESENT=yes
+else
+   LIBNOTIFY_PRESENT=no
+fi
+
+if test -n "$LIBCANBERRA_CFLAGS"; then
+   LIBCANBERRA_PRESENT=yes
+else
+   LIBCANBERRA_PRESENT=no
+fi
+
+if test -n "$UNITY_CFLAGS"; then
+   UNITY_PRESENT=yes
+else
+   UNITY_PRESENT=no
+fi
+
+cat <<EOF
+
+       Compiler: $CC
+ Compiler flags: $CFLAGS
+  Use libnotify: $LIBNOTIFY_PRESENT
+Use libcanberra: $LIBCANBERRA_PRESENT
+      Use unity: $UNITY_PRESENT
+
+EOF
