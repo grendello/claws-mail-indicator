@@ -89,7 +89,7 @@
 #define APPLICATION_NAME        "claws-mail-indicator"
 #define APPLICATION_ID          "org.grendel." APPLICATION_NAME
 
-#define INDICATOR_NEW_COUNT_NAME "New messages"
+#define INDICATOR_NEW_COUNT_NAME _ ("New messages")
 
 static guint item_hook_id;
 static guint accounts_hook_id;
