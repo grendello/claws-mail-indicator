@@ -1,12 +1,17 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
+m4_define([claws_mail_indicator_version_major],[0])
+m4_define([claws_mail_indicator_version_minor],[1])
+m4_define([claws_mail_indicator_version_build],[0])
+m4_define([concat], $1$2$3)
+m4_define([claws_mail_indicator_version], concat(claws_mail_indicator_version_major.,claws_mail_indicator_version_minor.,claws_mail_indicator_version_build))
 
 AC_PREREQ([2.67])
-AC_INIT([claws-mail-indicator], [0.1.0], [grendel@twistedcode.net])
-AM_INIT_AUTOMAKE([foreign])
+AC_INIT([claws-mail-indicator], claws_mail_indicator_version, [grendel@twistedcode.net])
+AM_INIT_AUTOMAKE([foreign no-define])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-AC_CONFIG_SRCDIR(src/claws-mail-indicator.c)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_SRCDIR([src/claws-mail-indicator.c])
+AM_CONFIG_HEADER([indicator_config.h])
 AM_MAINTAINER_MODE
 
 AC_ISC_POSIX

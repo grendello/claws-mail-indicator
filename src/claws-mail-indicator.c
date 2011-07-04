@@ -32,8 +32,27 @@
 #define _GNU_SOURCE
 #endif
 
+#include <common/claws.h>
+#include <common/utils.h>
+#include <plugin.h>
+#include <account.h>
+#include <mainwindow.h>
+#include <toolbar.h>
+#include <addressbook.h>
+#include <compose.h>
+#include <inc.h>
+#include <main.h>
+
+/* Workaround claws-mail including config.h from public headers */
+#undef GETTEXT_PACKAGE
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <indicator_config.h>
 #endif
 
 #include <stdlib.h>
@@ -57,11 +76,6 @@
 #include <libindicate/server.h>
 #include <libindicate/indicator.h>
 #include <libindicate/indicator-messages.h>
-
-#include <common/claws.h>
-#include <common/utils.h>
-#include <plugin.h>
-#include <account.h>
 
 #undef HAVE_CONFIG_H
 #include <folder.h>
@@ -126,19 +140,33 @@ static void delete_submenu_item (gpointer data, gpointer user_data)
 }
 
 static void command_get_mail (DbusmenuMenuitem *mi, guint timestamp, gpointer user_data)
-{}
+{
+	MainWindow *mw = mainwindow_get_mainwindow ();
+	inc_all_account_mail (mw, TRUE, TRUE);
+}
 
 static void command_new_mail (DbusmenuMenuitem *mi, guint timestamp, gpointer user_data)
-{}
+{
+	MainWindow *mw = mainwindow_get_mainwindow ();
+	compose_mail_cb (mw, 0, NULL);
+}
 
 static void command_new_mail_account (DbusmenuMenuitem *mi, guint timestamp, gpointer user_data)
-{}
+{
+	compose_new ((PrefsAccount*) user_data, NULL, NULL);
+}
 
 static void command_open_addressbook (DbusmenuMenuitem *mi, guint timestamp, gpointer user_data)
-{}
+{
+	addressbook_open (NULL);
+}
 
 static void command_exit_claws (DbusmenuMenuitem *mi, guint timestamp, gpointer user_data)
-{}
+{
+	MainWindow *mw = mainwindow_get_mainwindow ();
+	if (mw->lock_count == 0)
+		app_will_exit (NULL, mw);
+}
 
 static void fill_accounts_submenu (DbusmenuMenuitem *parent)
 {
@@ -207,6 +235,11 @@ gint plugin_init (gchar **error)
 		}
 	}
 #endif
+#ifdef HAVE_UNITY
+	unity_launcher = unity_launcher_entry_get_for_desktop_file (CLAWS_DESKTOP_FILE);
+#endif
+	indicate_server_show (indicate_server);
+
 	debug_print ("Ubuntu indicator plugin loaded\n");
 	return 0;
 }
@@ -230,7 +263,7 @@ gboolean plugin_done (void)
 
 const gchar *plugin_name (void)
 {
-	return _ ("UbuntuIndicator");
+	return _ ("Ubuntu Indicator");
 }
 
 const gchar *plugin_desc (void)
@@ -246,7 +279,7 @@ const gchar *plugin_type (void)
 
 const gchar *plugin_version (void)
 {
-	return VERSION;
+	return PACKAGE_VERSION;
 }
 
 const gchar *plugin_licence (void)
