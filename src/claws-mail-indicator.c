@@ -42,6 +42,7 @@
 #include <compose.h>
 #include <inc.h>
 #include <main.h>
+#include <folder.h>
 
 /* Workaround claws-mail including config.h from public headers */
 #undef GETTEXT_PACKAGE
@@ -88,9 +89,11 @@
 #define APPLICATION_NAME        "claws-mail-indicator"
 #define APPLICATION_ID          "org.grendel." APPLICATION_NAME
 
+#define INDICATOR_NEW_COUNT_NAME "New messages"
+
 static guint item_hook_id;
 static IndicateServer *indicate_server = NULL;
-static GSList *indicators = NULL;
+static GHashTable *indicators = NULL;
 
 #ifdef HAVE_UNITY
 static UnityLauncherEntry *unity_launcher = NULL;
@@ -105,9 +108,55 @@ static ca_context *canberra_context = NULL;
 static ca_proplist *canberra_props = NULL;
 #endif
 
+static IndicateIndicator *get_indicator (gchar *name);
+static IndicateIndicator *add_indicator (gchar *name);
+
+static void set_indicator_count (IndicateIndicator *indicator, guint count)
+{
+	if (!indicator)
+		return;
+
+	gchar *tmp = g_strdup_printf ("%d", count);
+	indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_COUNT, tmp);
+	g_free (tmp);
+}
+
 static void update (void)
 {
-	
+	guint newMessages, unreadMessages, unreadMarkedMessages, totalMessages, markedMessages;
+	guint repliedMessages, forwardedMessages, lockedMessages, ignoredMessages, watchedMessages;	
+
+	folder_count_total_msgs (&newMessages, &unreadMessages, &unreadMarkedMessages, &markedMessages, &totalMessages,
+				 &repliedMessages, &forwardedMessages, &lockedMessages, &ignoredMessages, &watchedMessages);
+
+	IndicateIndicator *indicator = get_indicator (INDICATOR_NEW_COUNT_NAME);
+	if (!indicator)
+		return;
+
+	set_indicator_count (indicator, newMessages);
+	if (newMessages > 0) {
+		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "true");
+		indicate_indicator_show (indicator);
+	} else {
+		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "false");
+		indicate_indicator_hide (indicator);
+		return;
+	}
+#if HAVE_LIBNOTIFY
+	if (!notification)
+		notification = notify_notification_new (_ ("You've got new mail"), " ", "mail-unread", NULL);
+	const gchar *translation = g_dngettext (PACKAGE_NAME, "%d New message received", "%d New messages received", newMessages);
+	gchar *title = g_strdup_printf (translation, newMessages);
+	notify_notification_update (notification, title, NULL, "notification-message-email");
+	notify_notification_set_hint_string (notification, "sound-themed", "message-new-email");
+	GError *error = NULL;
+
+	notify_notification_show (notification, &error);
+	if (error) {
+		debug_print ("Error showing notification: %s\n", error->message);
+		g_free (error);
+	}
+#endif
 }
 
 static gboolean folder_item_update_hook (gpointer source, gpointer data)
@@ -187,6 +236,41 @@ static void fill_accounts_submenu (DbusmenuMenuitem *parent)
 	}
 }
 
+static IndicateIndicator *add_indicator (gchar *name)
+{
+	IndicateIndicator *indicator = indicate_indicator_new ();
+
+	indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_NAME, name);
+	indicate_indicator_show (indicator);
+
+	IndicateIndicator *old = NULL;
+	if (indicators)
+		old = INDICATE_INDICATOR (g_hash_table_lookup (indicators, name));
+	
+	if (old) {
+		indicate_indicator_hide (old);
+		g_free (old);
+	}
+
+	indicate_indicator_show (indicator);
+	if (!indicators)
+		indicators = g_hash_table_new (g_str_hash, g_str_equal);
+	
+	g_hash_table_insert (indicators, name, indicator);
+
+	return indicator;
+}
+
+static IndicateIndicator *get_indicator (gchar *name)
+{
+	if (!indicators) {
+		g_warning ("*INDICATOR*: no indicators?!");
+		return NULL;
+	}
+
+	return g_hash_table_lookup (indicators, name);
+}
+
 gint plugin_init (gchar **error)
 {
 	if (!check_plugin_version (claws_minimum_version, claws_version_numeric, PACKAGE_NAME, error))
@@ -205,14 +289,18 @@ gint plugin_init (gchar **error)
 	DbusmenuServer *menu_server = dbusmenu_server_new ("/messaging/commands");
 	DbusmenuMenuitem *root = dbusmenu_menuitem_new ();
 
-	add_indicator_menu_item (root, _ ("_Get Mail"), G_CALLBACK (command_get_mail), NULL);
-	add_indicator_menu_item (root, _ ("New _Email"), G_CALLBACK (command_new_mail), NULL);
-	fill_accounts_submenu (add_indicator_menu_item (root, _ ("New E_mail from account"), NULL, NULL));
-	add_indicator_menu_item (root, _ ("Open A_ddressbook"), G_CALLBACK (command_open_addressbook), NULL);
-	add_indicator_menu_item (root, _ ("E_xit Claws Mail"), G_CALLBACK (command_exit_claws), NULL);
+	DbusmenuMenuitem *actions = add_indicator_menu_item (root, _ ("_Actions"), NULL, NULL);
+	add_indicator_menu_item (actions, _ ("_Get Mail"), G_CALLBACK (command_get_mail), NULL);
+	add_indicator_menu_item (actions, _ ("New _Email"), G_CALLBACK (command_new_mail), NULL);
+	fill_accounts_submenu (add_indicator_menu_item (actions, _ ("New E_mail from account"), NULL, NULL));
+	add_indicator_menu_item (actions, _ ("Open A_ddressbook"), G_CALLBACK (command_open_addressbook), NULL);
+	add_indicator_menu_item (actions, _ ("E_xit Claws Mail"), G_CALLBACK (command_exit_claws), NULL);
 
 	dbusmenu_server_set_root (menu_server, root);
 	indicate_server_set_menu (indicate_server, menu_server);
+
+	add_indicator (INDICATOR_NEW_COUNT_NAME);
+	update ();
 	
 #ifdef HAVE_LIBNOTIFY
 	if (!notification)
@@ -249,8 +337,7 @@ gboolean plugin_done (void)
 	hooks_unregister_hook (FOLDER_ITEM_UPDATE_HOOKLIST, item_hook_id);
 
 	if (indicators) {
-		g_slist_foreach (indicators, (GFunc)g_object_unref, NULL);
-		g_slist_free (indicators);
+		g_hash_table_destroy (indicators);
 		indicators = NULL;
 	}
 
