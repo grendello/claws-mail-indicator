@@ -111,6 +111,8 @@ static ca_proplist *canberra_props = NULL;
 static IndicateIndicator *get_indicator (gchar *name);
 static IndicateIndicator *add_indicator (gchar *name);
 
+static guint last_new_messages_count = 0;
+
 static void set_indicator_count (IndicateIndicator *indicator, guint count)
 {
 	if (!indicator)
@@ -138,10 +140,20 @@ static void update (void)
 		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "true");
 		indicate_indicator_show (indicator);
 	} else {
+		last_new_messages_count = 0;
 		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "false");
 		indicate_indicator_hide (indicator);
 		return;
 	}
+
+	gboolean need_notification = TRUE;
+	if (last_new_messages_count >= newMessages)
+		/* User is reading/deleting new messages */
+		need_notification = FALSE;
+	last_new_messages_count = newMessages;
+
+	if (!need_notification)
+		return;
 #if HAVE_LIBNOTIFY
 	if (!notification)
 		notification = notify_notification_new (_ ("You've got new mail"), " ", "mail-unread", NULL);

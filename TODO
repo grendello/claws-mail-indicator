@@ -3,3 +3,6 @@
     - whether to play sound
     - what indicators to show (new messages, unread messages etc)
 - i18n
+- react to account list change by recreating the Email From Account menu
+- think of a better way to limit the number of bubble notifications displayed if update
+  occurs in several folders/accounts
