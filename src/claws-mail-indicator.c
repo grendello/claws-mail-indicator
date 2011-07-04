@@ -92,8 +92,10 @@
 #define INDICATOR_NEW_COUNT_NAME "New messages"
 
 static guint item_hook_id;
+static guint accounts_hook_id;
 static IndicateServer *indicate_server = NULL;
 static GHashTable *indicators = NULL;
+static DbusmenuMenuitem *accounts_menu = NULL;
 
 #ifdef HAVE_UNITY
 static UnityLauncherEntry *unity_launcher = NULL;
@@ -110,6 +112,7 @@ static ca_proplist *canberra_props = NULL;
 
 static IndicateIndicator *get_indicator (gchar *name);
 static IndicateIndicator *add_indicator (gchar *name);
+static void fill_accounts_submenu (DbusmenuMenuitem *parent);
 
 static guint last_new_messages_count = 0;
 
@@ -176,6 +179,18 @@ static gboolean folder_item_update_hook (gpointer source, gpointer data)
 	update ();
 
 	return FALSE;
+}
+
+static gboolean update_accounts_list_hook (gpointer source, gpointer data)
+{
+	GList *child;
+
+	for (child = dbusmenu_menuitem_get_children (accounts_menu); child; child = child->next) {
+		dbusmenu_menuitem_child_delete (accounts_menu, child->data);
+		g_object_unref (child->data);
+	}
+	
+	fill_accounts_submenu (accounts_menu);
 }
 
 static DbusmenuMenuitem* add_indicator_menu_item (DbusmenuMenuitem *root_menu, gchar *label, GCallback callback, gpointer data)
@@ -294,6 +309,12 @@ gint plugin_init (gchar **error)
 		return -1;
 	}
 
+	accounts_hook_id = hooks_register_hook (ACCOUNT_LIST_CHANGED_HOOKLIST, update_accounts_list_hook, NULL);
+	if (accounts_hook_id == -1) {
+		*error = g_strdup (_ ("Failed to register account list change hook."));
+		return -1;
+	}
+	
 	indicate_server = indicate_server_ref_default ();
 	indicate_server_set_type (indicate_server, "message");
 	indicate_server_set_desktop_file (indicate_server, CLAWS_DESKTOP_FILE);
@@ -304,7 +325,9 @@ gint plugin_init (gchar **error)
 	DbusmenuMenuitem *actions = add_indicator_menu_item (root, _ ("_Actions"), NULL, NULL);
 	add_indicator_menu_item (actions, _ ("_Get Mail"), G_CALLBACK (command_get_mail), NULL);
 	add_indicator_menu_item (actions, _ ("New _Email"), G_CALLBACK (command_new_mail), NULL);
-	fill_accounts_submenu (add_indicator_menu_item (actions, _ ("New E_mail from account"), NULL, NULL));
+
+	accounts_menu = add_indicator_menu_item (actions, _ ("New E_mail from account"), NULL, NULL);
+	fill_accounts_submenu (accounts_menu);
 	add_indicator_menu_item (actions, _ ("Open A_ddressbook"), G_CALLBACK (command_open_addressbook), NULL);
 	add_indicator_menu_item (actions, _ ("E_xit Claws Mail"), G_CALLBACK (command_exit_claws), NULL);
 
