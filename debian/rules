@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debhelper.mk
+#include /usr/share/cdbs/1/rules/simple-patchsys.mk
+include /usr/share/cdbs/1/rules/autoreconf.mk
+include /usr/share/cdbs/1/class/gnome.mk
+
+# do not generate ldconfig maintainer script stuff
+DEB_DH_MAKESHLIBS_ARGS=-X*
+
+binary-install/claws-mail-indicator::
+	# remove .a/.la clutter
+	rm -f debian/$(cdbs_curpkg)/usr/lib/claws-mail/plugins/*.a
+	rm -f debian/$(cdbs_curpkg)/usr/lib/claws-mail/plugins/*.la
+	# Add the launcher for evolution
+	install -d -m 755 debian/$(cdbs_curpkg)/usr/share/indicators/messages/applications
+	echo /usr/share/applications/claws-mail.desktop > debian/$(cdbs_curpkg)/usr/share/indicators/messages/applications/claws-mail
