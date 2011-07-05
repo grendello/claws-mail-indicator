@@ -11,7 +11,9 @@ Build-Depends: debhelper (>= 7.0.50~),
   libnotify-dev,
   libcanberra-dev,
   libunity-dev (>= 3.8.4),
-  dh-autoreconf
+  libgnutls-dev,
+  dh-autoreconf,
+  cdbs
 Standards-Version: 3.9.1
 Homepage: http://grendello.github.com/claws-mail-indicator
 Vcs-Git: git://github.com/grendello/claws-mail-indicator
