@@ -44,7 +44,7 @@
 #include <main.h>
 #include <folder.h>
 
-/* Workaround claws-mail including config.h from public headers */
+/* Workaround for claws-mail including config.h from public headers */
 #undef GETTEXT_PACKAGE
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
@@ -82,6 +82,7 @@
 #include <folder.h>
 
 #include "claws-mail-version.h"
+#include "claws-mail-indicator-prefs.h"
 
 #define CLAWS_DESKTOP_FILE       "/usr/share/applications/claws-mail.desktop"
 #define USER_BLACKLIST_DIR       "indicators/messages/applications-blacklist"
@@ -90,6 +91,7 @@
 #define APPLICATION_ID          "org.grendel." APPLICATION_NAME
 
 #define INDICATOR_NEW_COUNT_NAME _ ("New messages")
+#define INDICATOR_UNREAD_COUNT_NAME _ ("Unread messages")
 
 static guint item_hook_id;
 static guint accounts_hook_id;
@@ -111,22 +113,42 @@ static ca_proplist *canberra_props = NULL;
 #endif
 
 static IndicateIndicator *get_indicator (gchar *name);
+static void remove_indicator (gchar *name);
 static IndicateIndicator *add_indicator (gchar *name);
 static void fill_accounts_submenu (DbusmenuMenuitem *parent);
 
 static guint last_new_messages_count = 0;
 
-static void set_indicator_count (IndicateIndicator *indicator, guint count)
+static void set_indicator_count (gchar *name, guint count, gboolean visible, gboolean raise_attention)
 {
-	if (!indicator)
+	IndicateIndicator *indicator = get_indicator (name);
+	if (visible) {
+		if (!indicator)
+			indicator = add_indicator (name);
+	} else {
+		if (indicator)
+			remove_indicator (name);
+		if (indicate_indicator_is_visible (indicator))
+			indicate_indicator_hide (indicator);
 		return;
-
+	}
+	
 	gchar *tmp = g_strdup_printf ("%d", count);
 	indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_COUNT, tmp);
 	g_free (tmp);
+
+	if (count > 0) {
+		if (raise_attention)
+			indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "true");
+		indicate_indicator_show (indicator);
+	} else {
+		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "false");
+		if (!indicator_prefs.always_show_indicators)
+			indicate_indicator_hide (indicator);
+	}
 }
 
-static void update (void)
+void update_notifications (void)
 {
 	guint newMessages, unreadMessages, unreadMarkedMessages, totalMessages, markedMessages;
 	guint repliedMessages, forwardedMessages, lockedMessages, ignoredMessages, watchedMessages;	
@@ -134,23 +156,11 @@ static void update (void)
 	folder_count_total_msgs (&newMessages, &unreadMessages, &unreadMarkedMessages, &markedMessages, &totalMessages,
 				 &repliedMessages, &forwardedMessages, &lockedMessages, &ignoredMessages, &watchedMessages);
 
-	IndicateIndicator *indicator = get_indicator (INDICATOR_NEW_COUNT_NAME);
-	if (!indicator)
-		return;
-
-	set_indicator_count (indicator, newMessages);
-	if (newMessages > 0) {
-		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "true");
-		indicate_indicator_show (indicator);
-	} else {
-		last_new_messages_count = 0;
-		indicate_indicator_set_property (indicator, INDICATE_INDICATOR_MESSAGES_PROP_ATTENTION, "false");
-		indicate_indicator_hide (indicator);
-		return;
-	}
-
+	set_indicator_count (INDICATOR_NEW_COUNT_NAME, newMessages, indicator_prefs.indicator_new_messages, TRUE);
+	set_indicator_count (INDICATOR_UNREAD_COUNT_NAME, unreadMessages, indicator_prefs.indicator_unread_messages, FALSE);
+	
 	gboolean need_notification = TRUE;
-	if (last_new_messages_count >= newMessages)
+	if (newMessages == 0 || last_new_messages_count >= newMessages)
 		/* User is reading/deleting new messages */
 		need_notification = FALSE;
 	last_new_messages_count = newMessages;
@@ -158,25 +168,28 @@ static void update (void)
 	if (!need_notification)
 		return;
 #if HAVE_LIBNOTIFY
-	if (!notification)
-		notification = notify_notification_new (_ ("You've got new mail"), " ", "mail-unread", NULL);
-	const gchar *translation = g_dngettext (PACKAGE_NAME, "%d New message received", "%d New messages received", newMessages);
-	gchar *title = g_strdup_printf (translation, newMessages);
-	notify_notification_update (notification, title, NULL, "notification-message-email");
-	notify_notification_set_hint_string (notification, "sound-themed", "message-new-email");
-	GError *error = NULL;
+	if (indicator_prefs.notification_bubble) {
+		if (!notification)
+			notification = notify_notification_new (_ ("You've got new mail"), " ", "mail-unread", NULL);
+		const gchar *translation = g_dngettext (PACKAGE_NAME, "%d New message", "%d New messages", newMessages);
+		gchar *title = g_strdup_printf (translation, newMessages);
+		notify_notification_update (notification, title, NULL, "notification-message-email");
+		if (indicator_prefs.notification_sound)
+			notify_notification_set_hint_string (notification, "sound-themed", "message-new-email");
+		GError *error = NULL;
 
-	notify_notification_show (notification, &error);
-	if (error) {
-		debug_print ("Error showing notification: %s\n", error->message);
-		g_free (error);
+		notify_notification_show (notification, &error);
+		if (error) {
+			debug_print ("Error showing notification: %s\n", error->message);
+			g_free (error);
+		}
 	}
 #endif
 }
 
 static gboolean folder_item_update_hook (gpointer source, gpointer data)
 {
-	update ();
+	update_notifications ();
 
 	return FALSE;
 }
@@ -298,6 +311,19 @@ static IndicateIndicator *get_indicator (gchar *name)
 	return g_hash_table_lookup (indicators, name);
 }
 
+static void remove_indicator (gchar *name)
+{
+	if (!indicators)
+		return;
+
+	IndicateIndicator *indicator = g_hash_table_lookup (indicators, name);
+	if (!indicator)
+		return;
+
+	g_hash_table_remove (indicators, (gconstpointer)name);
+	g_object_unref (indicator);
+}
+
 gint plugin_init (gchar **error)
 {
 	if (!check_plugin_version (claws_minimum_version, claws_version_numeric, PACKAGE_NAME, error))
@@ -333,9 +359,8 @@ gint plugin_init (gchar **error)
 
 	dbusmenu_server_set_root (menu_server, root);
 	indicate_server_set_menu (indicate_server, menu_server);
-
-	add_indicator (INDICATOR_NEW_COUNT_NAME);
-	update ();
+	
+	update_notifications ();
 	
 #ifdef HAVE_LIBNOTIFY
 	if (!notification)
@@ -363,6 +388,7 @@ gint plugin_init (gchar **error)
 #endif
 	indicate_server_show (indicate_server);
 
+	claws_mail_indicator_prefs_init ();
 	debug_print ("Ubuntu indicator plugin loaded\n");
 	return 0;
 }
@@ -379,6 +405,8 @@ gboolean plugin_done (void)
 	indicate_server_hide (indicate_server);
 	g_object_unref (indicate_server);
 	indicate_server = NULL;
+
+	claws_mail_indicator_prefs_done ();
 	
 	return TRUE;
 }

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-07-05 00:36+0200\n"
+"POT-Creation-Date: 2011-07-06 01:34+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,67 +18,71 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: ../src/claws-mail-indicator.c:92
+#: ../src/claws-mail-indicator.c:93
 msgid "New messages"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:162
+#: ../src/claws-mail-indicator.c:94
+msgid "Unread messages"
+msgstr ""
+
+#: ../src/claws-mail-indicator.c:173
 msgid "You've got new mail"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:163
+#: ../src/claws-mail-indicator.c:174
 #, c-format
-msgid "%d New message received"
-msgid_plural "%d New messages received"
+msgid "%d New message"
+msgid_plural "%d New messages"
 msgstr[0] ""
 msgstr[1] ""
 
-#: ../src/claws-mail-indicator.c:262
+#: ../src/claws-mail-indicator.c:275
 msgid "Untitled"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:308
+#: ../src/claws-mail-indicator.c:334
 msgid "Failed to register folder item update hook."
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:314
+#: ../src/claws-mail-indicator.c:340
 msgid "Failed to register account list change hook."
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:325
+#: ../src/claws-mail-indicator.c:351
 msgid "_Actions"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:326
+#: ../src/claws-mail-indicator.c:352
 msgid "_Get Mail"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:327
+#: ../src/claws-mail-indicator.c:353
 msgid "New _Email"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:329
+#: ../src/claws-mail-indicator.c:355
 msgid "New E_mail from account"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:331
+#: ../src/claws-mail-indicator.c:357
 msgid "Open A_ddressbook"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:332
+#: ../src/claws-mail-indicator.c:358
 msgid "E_xit Claws Mail"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:388
+#: ../src/claws-mail-indicator.c:416
 msgid "Ubuntu Indicator"
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:393
+#: ../src/claws-mail-indicator.c:421
 msgid ""
 "This plugin implements notifications for the latest Ubuntu versions which "
 "support unity and the integrated indicator applets."
 msgstr ""
 
-#: ../src/claws-mail-indicator.c:415
+#: ../src/claws-mail-indicator.c:443
 msgid "Indicator"
 msgstr ""
