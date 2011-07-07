@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 m4_define([claws_mail_indicator_version_major],[0])
-m4_define([claws_mail_indicator_version_minor],[1])
+m4_define([claws_mail_indicator_version_minor],[2])
 m4_define([claws_mail_indicator_version_build],[0])
 m4_define([concat], $1$2$3)
 m4_define([claws_mail_indicator_version], concat(claws_mail_indicator_version_major.,claws_mail_indicator_version_minor.,claws_mail_indicator_version_build))
