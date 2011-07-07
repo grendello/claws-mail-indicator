@@ -1,11 +1,14 @@
 #!/usr/bin/make -f
 include /usr/share/cdbs/1/rules/debhelper.mk
-#include /usr/share/cdbs/1/rules/simple-patchsys.mk
 include /usr/share/cdbs/1/rules/autoreconf.mk
 include /usr/share/cdbs/1/class/gnome.mk
 
 # do not generate ldconfig maintainer script stuff
 DEB_DH_MAKESHLIBS_ARGS=-X*
+
+CLAWS_MAIL_VERSION=$(shell /bin/bash $(CURDIR)/debian/get-claws-version.sh)
+# Define claws-mail version macro for dpkg-shlibdeps substitution
+DEB_DH_GENCONTROL_ARGS_ALL=-- -VClawsMailVersion=$(CLAWS_MAIL_VERSION)
 
 binary-install/claws-mail-indicator::
 	# remove .a/.la clutter

@@ -1,3 +1,10 @@
+claws-mail-indicator (0.2.0-1) natty; urgency=low
+
+  * Clicking on any of the indicators brigs up the Claws Mail window
+  * Claws Mail version is detected using version.h
+
+ -- Marek Habersack <grendel@twistedcode.net>  Thu, 07 Jul 2011 12:42:00 +0200
+
 claws-mail-indicator (0.1.0-1) unstable; urgency=low
 
   * Initial release
